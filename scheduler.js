@@ -2,8 +2,12 @@ const { fetchNews } = require('./newsFetcher');
 const { getLastLink, updateLastLink } = require('./storage');
 const { stripHtml } = require('./utils');
 
+const userTimers = new Map();
+
 function scheduleUserNews(user, keyword, interval) {
-    setInterval(async () => {
+    if (userTimers.has(user.id)) return; // 이미 등록된 경우 무시
+
+    const timer = setInterval(async () => {
         const news = await fetchNews(keyword);
         if (!news.length) return;
 
@@ -14,6 +18,16 @@ function scheduleUserNews(user, keyword, interval) {
             await updateLastLink(user.id, latest.link);
         }
     }, interval * 60 * 1000);
+
+    userTimers.set(user.id, timer);
 }
 
-module.exports = { scheduleUserNews };
+function cancelUserSchedule(userId) {
+    const timer = userTimers.get(userId);
+    if (timer) {
+        clearInterval(timer);
+        userTimers.delete(userId);
+    }
+}
+
+module.exports = { scheduleUserNews, cancelUserSchedule };

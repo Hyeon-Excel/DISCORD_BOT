@@ -9,9 +9,15 @@ async function saveUserSetting(userId, keyword, interval) {
 }
 
 async function loadUserSettings() {
-    await db.read();
-    db.data ||= { users: {} };
-    return db.data.users;
+    try {
+        await db.read();
+        db.data ||= { users: {} };
+        return db.data.users;
+    } catch (err) {
+        db.data = { users: {} };
+        await db.write();
+        return {};
+    }
 }
 
 async function updateLastLink(userId, link) {
@@ -26,4 +32,12 @@ function getLastLink(userId) {
     return db.data?.users?.[userId]?.lastLink || null;
 }
 
-module.exports = { saveUserSetting, loadUserSettings, updateLastLink, getLastLink };
+async function deleteUserSetting(userId) {
+    await db.read();
+    if (db.data.users?.[userId]) {
+        delete db.data.users[userId];
+        await db.write();
+    }
+}
+
+module.exports = { saveUserSetting, loadUserSettings, updateLastLink, getLastLink, deleteUserSetting };
