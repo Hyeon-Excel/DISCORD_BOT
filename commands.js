@@ -5,7 +5,16 @@ const {
 } = require('./storage');
 const { scheduleUserNews, cancelUserSchedule } = require('./scheduler');
 
+// 🔒 디버깅 전용 사용자 ID
+const USER_ID = process.env.DEBUG_USER_ID;
+
 async function handleCommand(message, client) {
+    // 일반 채팅은 무시
+    if (!message.content.startsWith('!')) return;
+
+    // 디버그 허용된 유저만 처리
+    if (message.author.id !== USER_ID) return;
+
     const args = message.content.trim().split(/\s+/);
     const command = args.shift();
 
@@ -35,7 +44,7 @@ async function handleCommand(message, client) {
     }
 
     else if (command === '!뉴스설정취소') {
-        const keyword = args[0]; // 있을 수도, 없을 수도 있음
+        const keyword = args[0];
 
         await deleteUserSetting(message.author.id, keyword);
         cancelUserSchedule(message.author.id, keyword);
