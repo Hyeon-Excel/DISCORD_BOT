@@ -8,9 +8,9 @@ function buildTimerKey(userId, keyword) {
     return `${userId}_${keyword}`;
 }
 
-function scheduleUserNews(user, keyword, interval) {
+function scheduleUserNews(user, keyword, interval, channelId = null) {
     const timerKey = buildTimerKey(user.id, keyword);
-    if (userTimers.has(timerKey)) return; // 이미 등록된 경우 무시
+    if (userTimers.has(timerKey)) return;
 
     const timer = setInterval(async () => {
         const news = await fetchNews(keyword);
@@ -19,8 +19,18 @@ function scheduleUserNews(user, keyword, interval) {
         const latest = news[0];
         const lastLink = getLastLink(user.id, keyword);
         if (latest.link !== lastLink) {
-            await user.send(`${stripHtml(latest.title)}\n${latest.link}`);
-            await updateLastLink(user.id, keyword, latest.link);
+            try {
+                const message = `${stripHtml(latest.title)}\n${latest.link}`;
+                if (channelId) {
+                    const channel = await user.client.channels.fetch(channelId);
+                    await channel.send(message);
+                } else {
+                    await user.send(message);
+                }
+                await updateLastLink(user.id, keyword, latest.link);
+            } catch (err) {
+                console.error(`❗ 뉴스 전송 실패 (${user.id}, ${keyword}):`, err.message);
+            }
         }
     }, interval * 60 * 1000);
 
@@ -35,7 +45,6 @@ function cancelUserSchedule(userId, keyword = null) {
             userTimers.delete(timerKey);
         }
     } else {
-        // keyword 없으면 해당 유저의 모든 타이머 제거
         for (const [key, timer] of userTimers) {
             if (key.startsWith(`${userId}_`)) {
                 clearInterval(timer);

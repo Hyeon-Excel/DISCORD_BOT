@@ -34,15 +34,16 @@ for (const file of commandFiles) {
 client.once('ready', async () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
 
-    // 다중 키워드 설정 로딩
     const settings = await loadUserSettings();
     for (const [userId, configs] of Object.entries(settings)) {
         try {
             const user = await client.users.fetch(userId);
-            for (const { keyword, interval } of configs) {
-                scheduleUserNews(user, keyword, interval);
-                console.log(`📨 ${user.tag} - '${keyword}' (${interval}분 간격) 스케줄 등록됨`);
+
+            for (const { keyword, interval, channelId } of configs) {
+                scheduleUserNews(user, keyword, interval, channelId);
+                console.log(`📨 ${user.tag} - '${keyword}' (${interval}분) → ${channelId ? `채널 ${channelId}` : 'DM'} 등록됨`);
             }
+
         } catch (error) {
             console.error(`❌ 사용자 ${userId} 불러오기 실패:`, error.message);
         }

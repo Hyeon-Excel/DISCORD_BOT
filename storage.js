@@ -1,7 +1,7 @@
 const { Low, JSONFile } = require('lowdb');
 const db = new Low(new JSONFile('db.json'));
 
-async function saveUserSetting(userId, keyword, interval) {
+async function saveUserSetting(userId, keyword, interval, channelId = null) {
     await db.read();
     db.data ||= { users: {} };
     db.data.users[userId] ||= [];
@@ -9,12 +9,14 @@ async function saveUserSetting(userId, keyword, interval) {
     const existing = db.data.users[userId].find(cfg => cfg.keyword === keyword);
     if (existing) {
         existing.interval = interval;
+        existing.channelId = channelId;
     } else {
-        db.data.users[userId].push({ keyword, interval, lastLink: null });
+        db.data.users[userId].push({ keyword, interval, channelId, lastLink: null });
     }
 
     await db.write();
 }
+
 
 async function loadUserSettings() {
     try {
