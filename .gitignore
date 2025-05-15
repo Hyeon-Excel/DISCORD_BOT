@@ -12,6 +12,7 @@ yarn-debug.log*
 yarn-error.log*
 
 ####################
-# DB and runtime data
+# DB, API, Token and runtime data
 ####################
 db.json
+.env
