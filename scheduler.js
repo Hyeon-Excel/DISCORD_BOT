@@ -1,6 +1,7 @@
 const { fetchNews } = require('./newsFetcher');
 const { getLastLink, updateLastLink } = require('./storage');
 const { stripHtml } = require('./utils');
+const { EmbedBuilder } = require('discord.js');
 
 const userTimers = new Map();
 
@@ -18,15 +19,23 @@ function scheduleUserNews(user, keyword, interval, channelId = null) {
 
         const latest = news[0];
         const lastLink = getLastLink(user.id, keyword);
+
         if (latest.link !== lastLink) {
             try {
-                const message = `${stripHtml(latest.title)}\n${latest.link}`;
+                const embed = new EmbedBuilder()
+                    .setTitle(stripHtml(latest.title))
+                    .setURL(latest.link)
+                    .setDescription(`[뉴스 보러 가기](${latest.link})`)
+                    .setTimestamp(new Date(latest.pubDate || Date.now()))
+                    .setFooter({ text: `키워드: ${keyword}` });
+
                 if (channelId) {
                     const channel = await user.client.channels.fetch(channelId);
-                    await channel.send(message);
+                    await channel.send({ embeds: [embed] });
                 } else {
-                    await user.send(message);
+                    await user.send({ embeds: [embed] });
                 }
+
                 await updateLastLink(user.id, keyword, latest.link);
             } catch (err) {
                 console.error(`❗ 뉴스 전송 실패 (${user.id}, ${keyword}):`, err.message);
