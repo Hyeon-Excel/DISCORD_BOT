@@ -1,41 +1,66 @@
-const { SlashCommandBuilder, ChannelType } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('뉴스설정')
-        .setDescription('뉴스 키워드와 간격, 알림 채널을 설정합니다.')
+        .setDescription('뉴스 카테고리와 알림 간격, 전송 위치를 설정합니다.')
         .addStringOption(option =>
-            option.setName('키워드')
-                .setDescription('뉴스 키워드 (예: 경제, IT 등)')
-                .setRequired(true))
-        .addIntegerOption(option =>
-            option.setName('간격')
-                .setDescription('뉴스 알림 간격 (분)')
-                .setRequired(true))
-        .addChannelOption(option =>
-            option.setName('채널')
-                .setDescription('뉴스 알림을 받을 채널')
-                .addChannelTypes(ChannelType.GuildText)
-                .setRequired(false)),
+            option.setName('카테고리')
+                .setDescription('뉴스 분야를 선택하세요')
+                .setRequired(true)
+                .addChoices(
+                    { name: '정치', value: '정치' },
+                    { name: '경제', value: '경제' },
+                    { name: '사회', value: '사회' },
+                    { name: '생활/문화', value: '생활/문화' },
+                    { name: 'IT/과학', value: 'IT/과학' },
+                    { name: '세계', value: '세계' }
+                )
+        )
+        .addStringOption(option =>
+            option.setName('주기')
+                .setDescription('뉴스 알림 주기를 선택하세요')
+                .setRequired(true)
+                .addChoices(
+                    { name: '실시간', value: '0' },
+                    { name: '15분', value: '15' },
+                    { name: '30분', value: '30' },
+                    { name: '1시간', value: '60' }
+                )
+        )
+        .addStringOption(option =>
+            option.setName('위치')
+                .setDescription('뉴스 알림 전송 위치')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'DM으로 받기', value: 'dm' },
+                    { name: '이 채널로 받기', value: 'here' }
+                )
+        ),
 
     async execute(interaction) {
-        const keyword = interaction.options.getString('키워드');
-        const interval = interaction.options.getInteger('간격');
-        const channel = interaction.options.getChannel('채널'); // optional
+        const keyword = interaction.options.getString('카테고리');
+        const intervalStr = interaction.options.getString('주기');
+        const interval = parseInt(intervalStr);
+        const location = interaction.options.getString('위치');
 
-        if (interval <= 0) {
-            return interaction.reply({ content: '❗ 간격은 1 이상이어야 합니다.', ephemeral: true });
+        if (isNaN(interval) || interval < 0) {
+            return interaction.reply({ content: '❗ 유효한 주기를 선택하세요.', ephemeral: true });
         }
 
         const { saveUserSetting } = require('../storage');
         const { scheduleUserNews, cancelUserSchedule } = require('../scheduler');
 
-        await saveUserSetting(interaction.user.id, keyword, interval, channel?.id);
-        cancelUserSchedule(interaction.user.id, keyword);
-        scheduleUserNews(interaction.user, keyword, interval, channel?.id);
+        const channelId = (location === 'here') ? interaction.channel.id : null;
 
+        await saveUserSetting(interaction.user.id, keyword, interval, channelId);
+        cancelUserSchedule(interaction.user.id, keyword);
+        scheduleUserNews(interaction.user, keyword, interval, channelId);
+
+        const intervalMsg = interval === 0 ? '실시간' : `${interval}분마다`;
+        const locationMsg = (location === 'here') ? `<#${interaction.channel.id}>` : 'DM';
         return interaction.reply({
-            content: `✅ '${keyword}' 뉴스가 ${interval}분마다 ${channel ? `<#${channel.id}>` : 'DM'}으로 전송되도록 설정되었습니다.`,
+            content: `✅ '${keyword}' 뉴스가 ${intervalMsg} ${locationMsg}으로 전송되도록 설정되었습니다.`,
             ephemeral: true
         });
     }
