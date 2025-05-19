@@ -6,15 +6,16 @@ module.exports = {
         .setDescription('뉴스 카테고리와 알림 간격, 전송 위치를 설정합니다.')
         .addStringOption(option =>
             option.setName('카테고리')
-                .setDescription('뉴스 분야를 선택하세요')
+                .setDescription('뉴스 주제를 선택하세요')
                 .setRequired(true)
                 .addChoices(
-                    { name: '정치', value: '정치' },
-                    { name: '경제', value: '경제' },
-                    { name: '사회', value: '사회' },
-                    { name: '생활/문화', value: '생활/문화' },
-                    { name: 'IT/과학', value: 'IT/과학' },
-                    { name: '세계', value: '세계' }
+                    { name: '대한민국', value: '대한민국' },
+                    { name: '세계', value: '세계' },
+                    { name: '비즈니스', value: '비즈니스' },
+                    { name: '과학기술', value: '과학기술' },
+                    { name: '엔터테인먼트', value: '엔터테인먼트' },
+                    { name: '스포츠', value: '스포츠' },
+                    { name: '건강', value: '건강' }
                 )
         )
         .addStringOption(option =>

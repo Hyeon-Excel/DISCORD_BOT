@@ -1,4 +1,4 @@
-const { fetchNews } = require('./newsFetcher');
+const { fetchTopicNews } = require('./fetchTopicNews');
 const { getLastLink, updateLastLink } = require('./storage');
 const { stripHtml, extractPressName } = require('./utils');
 const { EmbedBuilder } = require('discord.js');
@@ -13,10 +13,8 @@ function scheduleUserNews(user, keyword, interval, channelId = null) {
     const timerKey = buildTimerKey(user.id, keyword);
     if (userTimers.has(timerKey)) return;
 
-    let lastCheckedTime = new Date();
-
     const timer = setInterval(async () => {
-        const news = await fetchNews(keyword);
+        const news = await fetchTopicNews(keyword); // keyword = 'korea' 같은 키
         if (!news.length) return;
 
         const lastLink = getLastLink(user.id, keyword);
@@ -28,23 +26,20 @@ function scheduleUserNews(user, keyword, interval, channelId = null) {
             ? await user.client.channels.fetch(channelId)
             : null;
 
-        const latest = newItems[0];
-        const embed = new EmbedBuilder()
-            .setTitle(`📑${keyword} | ${stripHtml(latest.title)}`)
-            .setURL(latest.link)
-            .setTimestamp(new Date(latest.pubDate || Date.now()))
-            .setFooter({ text: `📰 ${extractPressName(latest.originallink)}` });
+        const createEmbed = (item) => new EmbedBuilder()
+            .setTitle(stripHtml(item.title))
+            .setURL(item.link)
+            .setTimestamp(new Date(item.pubDate || Date.now()))
+            .setFooter({ text: `📑 ${keyword}` });
 
         if (interval === 0) {
+            // 실시간 모드: 최신 뉴스 한 건만 전송
+            const embed = createEmbed(newItems[0]);
             await (channel ? channel.send({ embeds: [embed] }) : user.send({ embeds: [embed] }));
-            await updateLastLink(user.id, keyword, latest.link);
+            await updateLastLink(user.id, keyword, newItems[0].link);
         } else {
-            const embeds = newItems.slice(0, 10).map(item => new EmbedBuilder()
-                .setTitle(`📑${keyword} | ${stripHtml(item.title)}`)
-                .setURL(item.link)
-                .setTimestamp(new Date(item.pubDate || Date.now()))
-                .setFooter({ text: `📰 ${extractPressName(item.originallink)}` }));
-
+            // 누적 모드: 최대 10건까지 한 번에 전송
+            const embeds = newItems.slice(0, 10).map(createEmbed);
             await (channel ? channel.send({ embeds }) : user.send({ embeds }));
             await updateLastLink(user.id, keyword, newItems[0].link);
         }

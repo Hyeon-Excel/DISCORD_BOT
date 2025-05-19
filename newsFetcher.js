@@ -1,19 +1,23 @@
-require('dotenv').config();
-const axios = require('axios');
+const Parser = require('rss-parser');
+const parser = new Parser();
 
-async function fetchNews(keyword) {
-    const clientId = process.env.NAVER_CLIENT_ID;
-    const clientSecret = process.env.NAVER_CLIENT_SECRET;
+async function fetchGoogleNews(keyword) {
+    const query = encodeURIComponent(keyword);
+    const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=ko&gl=KR&ceid=KR:ko`;
 
-    const res = await axios.get(`https://openapi.naver.com/v1/search/news.json`, {
-        params: { query: keyword, display: 10, sort: 'date' },
-        headers: {
-            'X-Naver-Client-Id': clientId,
-            'X-Naver-Client-Secret': clientSecret,
-        }
-    });
+    try {
+        const feed = await parser.parseURL(rssUrl);
 
-    return res.data.items || [];
+        return feed.items.map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            originallink: item.link // 도메인 파싱용
+        }));
+    } catch (err) {
+        console.error(`❗ 구글 뉴스 RSS 가져오기 실패 (${keyword}):`, err.message);
+        return [];
+    }
 }
 
-module.exports = { fetchNews };
+module.exports = { fetchGoogleNews };
